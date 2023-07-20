@@ -1,0 +1,19 @@
+domain: hitachienergy.com
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: pull-state-operator
+repo: hitachienergy.com/pull-state-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: hitachienergy.com
+  group: hitachi
+  kind: PullState
+  path: hitachienergy.com/pull-state-operator/api/v0
+  version: v0
+version: "3"

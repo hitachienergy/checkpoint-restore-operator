@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: pull-state-operator-helper
+  namespace: pull-state-operator-system
+  labels:
+    app: ps-helper
+spec:
+  selector:
+    matchLabels:
+      app: ps-helper
+  template:
+    metadata:
+      labels:
+        app: ps-helper
+    spec:
+      tolerations:
+        # these tolerations are to have the daemonset runnable on control plane nodes
+        # remove them if your control plane nodes should not run pods
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: ps-helper
+          image: IMAGEREGISTRY/pull-state-operator/helper:v0.0.1
+          imagePullPolicy: Always
+          resources:
+            limits:
+              memory: 200Mi
+            requests:
+              cpu: 100m
+              memory: 200Mi

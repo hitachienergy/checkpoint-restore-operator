@@ -1,0 +1,20 @@
+# permissions for end users to view pullstates.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pullstate-viewer-role
+rules:
+- apiGroups:
+  - hitachi.hitachienergy.com
+  resources:
+  - pullstates
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - hitachi.hitachienergy.com
+  resources:
+  - pullstates/status
+  verbs:
+  - get

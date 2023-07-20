@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: the-count-deployment
+  labels:
+    app: the-count
+  annotations:
+    hitachienergy.com/ps_mode: "http-sf"
+    hitachienergy.com/ps_interval: "10"
+    hitachienergy.com/ps_path: "/state"
+    hitachienergy.com/ps_port: "8080"
+
+    hitachienergy.com/cr_mode: "cr"
+    hitachienergy.com/cr_interval: "30"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: the-count
+  template:
+    metadata:
+      labels:
+        app: the-count
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: node-role.kubernetes.io/control-plane
+                  operator: NotIn
+                  values:
+                    - "true"
+      tolerations:
+        - key: "node.kubernetes.io/unreachable"
+          operator: "Exists"
+          effect: "NoExecute"
+          tolerationSeconds: 1
+        - key: "node.kubernetes.io/not-ready"
+          operator: "Exists"
+          effect: "NoExecute"
+          tolerationSeconds: 1
+      containers:
+        - name: the-count
+          image: IMAGEREGISTRY/hitachienergy/the-count:latest-amd64
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: the-count
+spec:
+  selector:
+    app: the-count
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080

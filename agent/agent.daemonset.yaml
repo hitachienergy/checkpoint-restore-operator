@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cr-agent
+  namespace: cr-operator-system
+  labels:
+    app: cr-agent
+spec:
+  selector:
+    matchLabels:
+      app: cr-agent
+  template:
+    metadata:
+      labels:
+        app: cr-agent
+    spec:
+      tolerations:
+        # these tolerations are to have the daemonset runnable on control plane nodes
+        # remove them if your control plane nodes should not run pods
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: cr-agent
+          image: IMAGEREGISTRY/cr-operator/agent:v0.0.1
+          imagePullPolicy: Always
+          securityContext:
+            capabilities:
+              add:
+                - SYS_ADMIN
+                - SYS_CHROOT
+          volumeMounts:
+            - mountPath: /var/lib/kubelet/checkpoints
+              name: kubelet-checkpoint
+            - mountPath: /var/lib/containers/storage
+              name: container-storage-graphroot
+            - mountPath: /run/containers/storage
+              name: container-storage-runroot
+            - mountPath: /etc/containers/storage.conf
+              name: container-storage-conf
+            - mountPath: /etc/containers/policy.json
+              name: container-policy
+      volumes:
+        - name: kubelet-checkpoint
+          hostPath:
+            path: /var/lib/kubelet/checkpoints
+        - name: container-storage-graphroot
+          hostPath:
+            path: /var/lib/containers/storage
+        - name: container-storage-runroot
+          hostPath:
+            path: /run/containers/storage
+        - name: container-storage-conf
+          hostPath:
+            path: /etc/containers/storage.conf
+        - name: container-policy
+          hostPath:
+            path: /etc/containers/policy.json

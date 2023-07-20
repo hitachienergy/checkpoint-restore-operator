@@ -1,0 +1,99 @@
+From 57a6474fed9008720b405ac2216a0ce6b75163f0 Mon Sep 17 00:00:00 2001
+From: Henri Schmidt <henri.schmidt@hitachienergy.com>
+Date: Mon, 28 Nov 2022 09:53:26 +0000
+Subject: [PATCH] customization
+
+---
+ Makefile                       | 4 ++--
+ internal/lib/restore.go        | 6 ++++++
+ internal/oci/runtime_oci.go    | 9 +++++++++
+ server/container_checkpoint.go | 1 +
+ server/container_start.go      | 1 +
+ 5 files changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index b42ea32ef..5a1317188 100644
+--- a/Makefile
++++ b/Makefile
+@@ -76,7 +76,7 @@ else
+ endif
+ 
+ # pass crio CLI options to generate custom configuration options at build time
+-CONF_OVERRIDES ?=
++CONF_OVERRIDES ?=
+ 
+ CROSS_BUILD_TARGETS := \
+ 	bin/crio.cross.windows.amd64 \
+@@ -202,7 +202,7 @@ build-static:
+ release-bundle: clean bin/pinns build-static docs crio.conf bundle
+ 
+ crio.conf: bin/crio
+-	./bin/crio -d "" --config="" $(CONF_OVERRIDES) config > crio.conf
++	./bin/crio -d "" $(CONF_OVERRIDES) config > crio.conf
+ 
+ release:
+ 	${GO_RUN} ./scripts/release
+diff --git a/internal/lib/restore.go b/internal/lib/restore.go
+index d2ec2cade..b80c5a73c 100644
+--- a/internal/lib/restore.go
++++ b/internal/lib/restore.go
+@@ -100,6 +100,12 @@ func (c *ContainerServer) ContainerRestore(ctx context.Context, opts *ContainerC
+ 					logrus.Debugf("Can't import '%s' from checkpoint image", name)
+ 				}
+ 			}
++			ctr.Spec().Linux.MaskedPaths = []string{
++				"/proc/timer_list",
++				"/proc/latency_stats",
++				"/proc/keys",
++			}
++
+ 		} else {
+ 			if err := crutils.CRImportCheckpointWithoutConfig(ctr.Dir(), ctr.RestoreArchive()); err != nil {
+ 				return "", err
+diff --git a/internal/oci/runtime_oci.go b/internal/oci/runtime_oci.go
+index d3fb1b4bf..9170875b4 100644
+--- a/internal/oci/runtime_oci.go
++++ b/internal/oci/runtime_oci.go
+@@ -1571,6 +1571,15 @@ func (r *runtimeOCI) RestoreContainer(ctx context.Context, c *Container, sbSpec
+ 	if err != nil {
+ 		return err
+ 	}
++	specgen.Config.Linux.MaskedPaths = []string{
++		"/proc/timer_list",
++		"/proc/latency_stats",
++		"/proc/keys",
++	}
++	saveOptions := generate.ExportOptions{}
++	if err := specgen.SaveToFile(configFile, saveOptions); err != nil {
++		return err
++	}
+ 
+ 	if oldSbID != newSbID {
+ 		// The container will be restored in another (not the original) sandbox
+diff --git a/server/container_checkpoint.go b/server/container_checkpoint.go
+index 6cb0d961e..aee67f3d5 100644
+--- a/server/container_checkpoint.go
++++ b/server/container_checkpoint.go
+@@ -118,6 +118,7 @@ func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointC
+ 				// For the forensic container checkpointing use case we
+ 				// keep the container running after checkpointing it.
+ 				KeepRunning: true,
++				Keep: true,
+ 			},
+ 		}
+ 		opts = append(opts, localOpts)
+diff --git a/server/container_start.go b/server/container_start.go
+index 62104a811..bb8def5d5 100644
+--- a/server/container_start.go
++++ b/server/container_start.go
+@@ -37,6 +37,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
+ 				Pod:       s.getSandbox(ctx, c.Sandbox()).ID(),
+ 				ContainerCheckpointOptions: libpod.ContainerCheckpointOptions{
+ 					TargetFile: c.ImageName(),
++					Keep: true,
+ 				},
+ 			},
+ 		)
+-- 
+2.20.1
+

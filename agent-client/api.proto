@@ -1,0 +1,39 @@
+syntax = "proto3";
+import "agent-client/stats.proto";
+package api;
+
+option go_package = "./generated";
+
+message TransferCheckpointRequest {
+  string checkpointName = 1;
+  string transferTo = 2;
+}
+
+message TransferCheckpointResponse{}
+
+message CreateCheckpointImageRequest{
+  string checkpointArchiveLocation = 1;
+  string containerName = 2;
+  string checkpointName = 3;
+}
+
+message CreateCheckpointImageResponse{
+}
+
+message AcceptCheckpointRequest {
+  string checkpointImageName = 1;
+  bytes checkpointOCIArchive = 2;
+}
+
+message AcceptCheckpointResponse{}
+
+message ExtractStatsRequest {
+  string checkpointArchiveLocation = 1;
+}
+
+service Agent {
+  rpc CreateCheckpointImage(CreateCheckpointImageRequest) returns (CreateCheckpointImageResponse) {}
+  rpc TransferCheckpoint(TransferCheckpointRequest) returns (TransferCheckpointResponse) {}
+  rpc ExtractStats(ExtractStatsRequest) returns (stats_entry) {}
+  rpc AcceptCheckpoint(stream AcceptCheckpointRequest) returns (AcceptCheckpointResponse) {}
+}

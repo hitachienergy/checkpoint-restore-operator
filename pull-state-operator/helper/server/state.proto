@@ -1,0 +1,30 @@
+syntax = "proto3";
+package pullstate;
+
+option go_package = "./generated";
+
+message PodId {
+  string id = 1;
+}
+
+message State {
+  string id = 1;
+  bytes state = 2;
+  string contentType = 3;
+}
+
+message RestoreSpec {
+  string fromId = 1;
+  string ip = 2;
+  string mode = 3;
+  string path = 4;
+  int32 port = 5;
+}
+
+message Empty{}
+
+service Helper {
+  rpc NewState(State) returns (Empty) {}
+  rpc Restore(RestoreSpec) returns (Empty) {}
+  rpc DeletePod(PodId) returns (Empty) {}
+}

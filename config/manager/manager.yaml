@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: controllers-manager
+  name: system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controllers-manager
+  namespace: system
+  labels:
+    control-plane: controllers-manager
+spec:
+  selector:
+    matchLabels:
+      control-plane: controllers-manager
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        control-plane: controllers-manager
+    spec:
+      tolerations:
+        # these tolerations are to have the daemonset runnable on control plane nodes
+        # remove them if your control plane nodes should not run pods
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      nodeSelector:
+        kubernetes.io/hostname: CTRLHOSTNAME
+      securityContext:
+        runAsNonRoot: true
+        # TODO(user): For common cases that do not require escalating privileges
+        # it is recommended to ensure that all your Pods/Containers are restrictive.
+        # More info: https://kubernetes.io/docs/concepts/security/pod-security-standards/#restricted
+        # Please uncomment the following code if your project does NOT have to work on old Kubernetes
+        # versions < 1.19 or on vendors versions which do NOT support this field by default (i.e. Openshift < 4.11 ).
+        # seccompProfile:
+        #   type: RuntimeDefault
+      containers:
+      - command:
+        - /manager
+        args:
+        - --leader-elect
+        image: IMAGEREGISTRY/cr-operator:v0.0.1
+        imagePullPolicy: Always
+        name: manager
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - "ALL"
+        env:
+          - name: DATABASE
+            value: ""
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
+          - name: kubelet-certs
+            mountPath: "/var/run/secrets/kubelet-certs"
+            readOnly: true
+        # TODO(user): Configure the resources accordingly based on the project requirements.
+        # More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+      volumes:
+        - name: kubelet-certs
+          secret:
+            secretName: kubelet-client-certs
+      serviceAccountName: controllers-manager
+      terminationGracePeriodSeconds: 10

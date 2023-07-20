@@ -1,0 +1,4 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- hitachi_v0_pullstate.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

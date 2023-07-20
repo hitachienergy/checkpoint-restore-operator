@@ -1,0 +1,7 @@
+apiVersion: hitachi.hitachienergy.com/v0
+kind: PullState
+metadata:
+  name: pullstate-sample
+spec:
+  # TODO(user): Add fields here
+  foo: "This string"
